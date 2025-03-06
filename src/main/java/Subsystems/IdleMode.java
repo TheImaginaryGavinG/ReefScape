@@ -1,4 +1,4 @@
-package frc.robot;
+package Subsystems;
 
 public enum IdleMode {
     kBrake
