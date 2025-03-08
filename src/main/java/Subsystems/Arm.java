@@ -1,5 +1,9 @@
 package Subsystems;
-/* 
+ /* 
+S-CURVE:::::::
+
+
+
 import com.revrobotics.spark.SparkMax; 
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 
@@ -138,79 +142,79 @@ public class Arm extends SubsystemBase {
         SmartDashboard.putNumber("Arm Target Height", targetHeight);
         SmartDashboard.putNumber("Current Time", currentTime);
     }
-} */
+} 
 
+TRAPEZOIDAL VERSION:::::
+
+
+
+
+
+ */
 
 import com.revrobotics.spark.SparkMax; 
 import com.revrobotics.spark.SparkLowLevel.MotorType;
-import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Arm extends SubsystemBase {
-    private final SparkMax slideMotor = new SparkMax(1, MotorType.kBrushless);
-    private final Encoder slideEncoder = new Encoder(0, 1);
-
-    private final double DISTANCE_PER_COUNT = 0.01; // cm per encoder count
-    private final double MAX_HEIGHT = 100.0;       // Maximum height in cm
-    private final double MIN_HEIGHT = 0.0;         // Minimum height in cm
-
-    private final double[] targetZs = {0.0, 50.0, 100.0}; // Preset heights in cm
-    private int targetIndex = 0;
-    private Translation3d currentTarget = new Translation3d(0, 0, targetZs[targetIndex]);
+    private final CANSparkMax slideMotor = new CANSparkMax(1, MotorType.kBrushless);
+    private final DigitalInput upperLimitSwitch = new DigitalInput(2);
+    private final DigitalInput lowerLimitSwitch = new DigitalInput(3);
+    
+    private double currentSpeed = 0.0;
+    private static final double MAX_SPEED = 1.0;
+    private static final double ACCELERATION_RATE = 0.02; // Adjust this for smoother acceleration
 
     public Arm() {
         slideEncoder.reset();
     }
 
-    public void moveArm(double input) {
-        double currentHeight = slideEncoder.getDistance() * DISTANCE_PER_COUNT;
-
-        // Limit motor movement within height bounds
-        if ((input > 0 && currentHeight < MAX_HEIGHT) || (input < 0 && currentHeight > MIN_HEIGHT)) {
-            slideMotor.set(input);
-        } else {
-            slideMotor.set(0);
+    public void moveArm(double desiredSpeed) {
+        // Ensure speed is within allowed range
+        if (desiredSpeed > MAX_SPEED) {
+            desiredSpeed = MAX_SPEED;
+        } else if (desiredSpeed < -MAX_SPEED) {
+            desiredSpeed = -MAX_SPEED;
         }
+
+        // Apply acceleration/deceleration
+        if (currentSpeed < desiredSpeed) {
+            currentSpeed += ACCELERATION_RATE;
+            if (currentSpeed > desiredSpeed) {
+                currentSpeed = desiredSpeed;
+            }
+        } else if (currentSpeed > desiredSpeed) {
+            currentSpeed -= ACCELERATION_RATE;
+            if (currentSpeed < desiredSpeed) {
+                currentSpeed = desiredSpeed;
+            }
+        }
+
+        // Ensure motor stops if limit switches are reached
+        if ((currentSpeed > 0 && isAtUpperLimit()) || (currentSpeed < 0 && isAtLowerLimit())) {
+            currentSpeed = 0.0;
+        }
+
+        slideMotor.set(currentSpeed);
     }
 
-    public void raiseArm() {
-        targetIndex = Math.min(targetIndex + 1, targetZs.length - 1);
-        updateCurrentTarget();
+    public void stop() {
+        slideMotor.set(0);
     }
 
-    public void lowerArm() {
-        targetIndex = Math.max(targetIndex - 1, 0);
-        updateCurrentTarget();
+    private boolean isAtUpperLimit() {
+        return !upperLimitSwitch.get(); // Returns false when pressed
     }
 
-    private void updateCurrentTarget() {
-        currentTarget = new Translation3d(0, 0, targetZs[targetIndex]);
-    }
-
-    public double getDistanceFromTarget() {
-        double currentHeight = slideEncoder.getDistance() * DISTANCE_PER_COUNT;
-        return targetZs[targetIndex] - currentHeight;
-    }
-
-    public double[] getTargetPosition() {
-        return new double[] {0, 0, targetZs[targetIndex]};
+    private boolean isAtLowerLimit() {
+        return !lowerLimitSwitch.get(); // Returns false when pressed
     }
 
     @Override
     public void periodic() {
-        // Send feedback to the dashboard
-        SmartDashboard.putNumber("Current Arm Height (cm)", slideEncoder.getDistance() * DISTANCE_PER_COUNT);
-        SmartDashboard.putNumber("Target Arm Height (cm)", targetZs[targetIndex]);
-        SmartDashboard.putNumber("Distance from Target (cm)", getDistanceFromTarget());
+        SmartDashboard.putBoolean("At Upper Limit", isAtUpperLimit());
+        SmartDashboard.putBoolean("At Lower Limit", isAtLowerLimit());
+        SmartDashboard.putNumber("Current Arm Speed", currentSpeed);
     }
-
-    public void moveToXYZTargetLocation(Translation3d target) {
-        // Optional: Add logic for fine-grained target movement
-    }
-}
-
-
-
-

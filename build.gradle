@@ -50,6 +50,13 @@ dependencies {
     implementation 'edu.wpi.first.wpilibj2:wpilibj-command:2025.+'
     implementation 'com.revrobotics.frc:SparkMax:2025.+'
        implementation 'edu.wpi.first.wpilibj2:wpilibj-command:2025.+'
+
+
+    implementation 'edu.wpi.first.wpilibj:wpilibj-java:2025.+'
+    implementation 'edu.wpi.first.math:wpimath:2025.+'
+    implementation 'edu.wpi.first.ntcore:ntcore-java:2025.+'
+    implementation 'edu.wpi.first.hal:hal-java:2025.+'
+    implementation 'edu.wpi.first.cscore:cscore-java:2025.+'
     roborioDebug wpi.java.deps.wpilibJniDebug(wpi.platforms.roborio)
     roborioDebug wpi.java.vendor.jniDebug(wpi.platforms.roborio)
 
